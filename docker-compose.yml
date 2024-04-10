@@ -1,0 +1,62 @@
+version: '3.4'
+
+networks:
+  demoappnetowrk: 
+
+services:
+ mysql-container:
+    image: mysql:8.3.0
+    container_name: mysql-container 
+    networks:
+        - demoappnetowrk
+    environment:
+        - MYSQL_ROOT_PASSWORD=MysqlPassword@2022 # Set the 'sa' user password 
+    ports:
+        - "8003:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+        test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+        timeout: 20s
+        retries: 10       
+ mssql-container:
+    image: mcr.microsoft.com/mssql/server:latest
+    container_name: mssql-container
+    environment:
+      - ACCEPT_EULA=Y   # Accept the End-User License Agreement
+      - SA_PASSWORD=MyDemoPassword@2022 # Set the 'sa' user password
+    ports:
+     - "8002:1433"
+    networks:
+        - demoappnetowrk
+    volumes:
+      - mssql-container-data:/var/opt/mssql
+ webapiefcoremigrationautomatic:
+    container_name: WebApiContainer
+    image: ${DOCKER_REGISTRY-}webapiefcoremigrationautomatic
+    ports:
+        - 8001:80 
+    build:
+      context: .
+      dockerfile: WebApiefcoremigrationautomatic/Dockerfile
+    depends_on:
+        - mssql-container
+    networks:
+        - demoappnetowrk
+
+ stuendetms:
+    container_name: StuedentWebAPIContainer
+    image: ${DOCKER_REGISTRY-}stuendetms
+    build:
+      context: .
+      dockerfile: StuendetMS/Dockerfile
+    ports:
+        - 8004:80
+    depends_on:
+     mysql-container:
+         condition: service_healthy
+    networks:
+        - demoappnetowrk
+volumes:
+  mssql-container-data:
+  mysql-data:
